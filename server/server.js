@@ -7,6 +7,7 @@ const bodyParser = require("body-parser");
 const {ObjectID} = require("mongodb");
 
 const app = express();
+const port = process.env.PORT || 3111;
 
 app.use(bodyParser.json());
 
@@ -55,8 +56,8 @@ app.get("/todos/:id", (req, res) => {
   });
 });
 
-app.listen(3111, () => {
-  console.log("Started on port localhost:3111");
+app.listen(port, () => {
+  console.log(`Started on port ${port}`);
 });
 
 module.exports = {app};
