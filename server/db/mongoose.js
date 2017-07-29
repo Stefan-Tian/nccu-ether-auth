@@ -5,3 +5,7 @@ mongoose.connect("mongodb://thisisusername:thisispassword@ds127443.mlab.com:2744
  { useMongoClient: true });
 
 module.exports = {mongoose};
+
+
+// heroku config:set MONGODB_URI="mongodb://thisisusername:thisispassword@ds127443.mlab.com:27443/stefan-todo-api"
+// run this in terminal
