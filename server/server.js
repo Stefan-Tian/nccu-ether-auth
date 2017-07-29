@@ -37,7 +37,7 @@ app.get("/todos/:id", (req, res) => {
   // valid id using isValid
   if (!ObjectID.isValid(id)) {
     // 404 - send back empty body
-    res.status(404).send();
+    return res.status(404).send();
   }
 
   // findById
@@ -52,6 +52,22 @@ app.get("/todos/:id", (req, res) => {
   }, (err) => {
     // Error
     // 400 - and send empty back
+    res.status(400).send();
+  });
+});
+
+app.delete("/todos/:id", (req, res) => {
+  let id = req.params.id;
+
+  if (!ObjectID.isValid(id)) {
+    return res.status(404).send("Invalid ID");
+  };
+  Todo.findByIdAndRemove(id).then((todo) => {
+    if (todo) {
+      return res.send("Todo successfully removed!");
+    }
+    res.status(404).send("ID not found");
+  }).catch((err) => {
     res.status(400).send();
   });
 });
