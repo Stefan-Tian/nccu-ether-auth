@@ -2,7 +2,7 @@ require("./config/config");
 
 const {mongoose} = require("./db/mongoose");
 const {Todo} = require("./models/todo");
-const {user} = require("./models/user");
+const {User} = require("./models/user");
 
 const express = require("express");
 const bodyParser = require("body-parser");
@@ -15,7 +15,7 @@ const port = process.env.PORT;
 app.use(bodyParser.json());
 
 app.post("/todos", (req, res) => {
-  let todo = new Todo({
+  const todo = new Todo({
     text: req.body.text
   });
 
@@ -35,7 +35,7 @@ app.get("/todos", (req, res) => {
 });
 
 app.get("/todos/:id", (req, res) => {
-  let id = req.params.id;
+  const id = req.params.id;
 
   // valid id using isValid
   if (!ObjectID.isValid(id)) {
@@ -60,7 +60,7 @@ app.get("/todos/:id", (req, res) => {
 });
 
 app.delete("/todos/:id", (req, res) => {
-  let id = req.params.id;
+  const id = req.params.id;
 
   if (!ObjectID.isValid(id)) {
     return res.status(404).send("Invalid ID");
@@ -77,8 +77,8 @@ app.delete("/todos/:id", (req, res) => {
 });
 
 app.patch("/todos/:id", (req, res) => {
-  let id = req.params.id;
-  let body = _.pick(req.body, ["text", "completed"]); // limit items that can be updated
+  const id = req.params.id;
+  const body = _.pick(req.body, ["text", "completed"]); // limit items that can be updated
 
   if (!ObjectID.isValid(id)) {
     return res.status(404).send("Invalid ID");
@@ -99,6 +99,19 @@ app.patch("/todos/:id", (req, res) => {
     res.send({todo});
   }).catch((err) => {
     res.status(404).send();
+  });
+});
+
+app.post("/users", (req, res) => {
+  const body = _.pick(req.body, ["email", "password"]);
+  const user = new User(body);
+
+  user.save().then(() => {
+    return user.generateAuthToken();
+  }).then((token) => {
+    res.header("x-auth", token).send(user);
+  }).catch((err) => {
+    res.status(400).send(err);
   });
 });
 
