@@ -43,13 +43,33 @@ UserSchema.methods.toJSON = function () {
 UserSchema.methods.generateAuthToken = function () {
   const user = this;
   const access = "auth";
-  const token = jwt.sign({_id: user._id.toHexString(), access}, "abc123").toString();
+  const token = jwt.sign({ _id: user._id.toHexString(), access }, "abc123").toString();
 
-  user.tokens.push({access, token});
+  user.tokens.push({ access, token });
 
   return user.save().then(() => {
     return token;
   });
+};
+
+UserSchema.statics.findByToken = function (token) {
+  const User = this;
+  let decoded;
+
+  try {
+    decoded = jwt.verify(token, "abc123")
+  } catch(e) {
+    // return new Promse((resolve, reject) {
+    //   reject();
+    // });
+    return Promise.reject();
+  }
+
+  return User.findOne({
+    _id: decoded._id,
+    "tokens.token": token,
+    "tokens.access": "auth"
+  }); // " " is necessary when you have dots
 };
 
 const User = mongoose.model("User", UserSchema);
