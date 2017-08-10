@@ -2,6 +2,7 @@ const mongoose = require("mongoose");
 const validator = require("validator");
 const jwt = require("jsonwebtoken");
 const _ = require("lodash");
+const bcrypt = require("bcryptjs");
 
 const UserSchema = new mongoose.Schema({
   email: {
@@ -71,6 +72,22 @@ UserSchema.statics.findByToken = function (token) {
     "tokens.access": "auth"
   }); // " " is necessary when you have dots
 };
+
+// this is the middleware that will ve run before saving to mongodb
+UserSchema.pre("save", function (next) {
+  const user = this;
+
+  if (user.isModified("password")) { // we want to make sure the password is changed or newly created
+    bcrypt.genSalt(10, (err, salt) => {
+      bcrypt.hash(user.password, salt, (err, hash) => {
+        user.password = hash;
+        next();
+      });
+    });
+  } else {
+    next();
+  }
+});
 
 const User = mongoose.model("User", UserSchema);
 
