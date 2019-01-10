@@ -1,44 +1,53 @@
-require("./config/config");
+require('./config/config');
 
-const { mongoose } = require("./db/mongoose");
-const { Todo } = require("./models/todo");
-const { User } = require("./models/user");
-const { authenticate } = require("./middleware/authenticate");
+const { mongoose } = require('./db/mongoose');
+const { Todo } = require('./models/todo');
+const { User } = require('./models/user');
+const { authenticate } = require('./middleware/authenticate');
 
-const express = require("express");
-const bodyParser = require("body-parser");
-const { ObjectID } = require("mongodb");
-const _ = require("lodash");
+const express = require('express');
+const bodyParser = require('body-parser');
+const { ObjectID } = require('mongodb');
+const cors = require('cors');
+const _ = require('lodash');
 
 const app = express();
+
+app.use(cors());
 const port = process.env.PORT;
 
 app.use(bodyParser.json());
 
-app.post("/todos", authenticate, (req, res) => {
+app.post('/todos', authenticate, (req, res) => {
   const todo = new Todo({
     text: req.body.text,
     _creator: req.user._id
   });
 
-  todo.save().then((doc) => {
-    res.send(doc);
-  }, (err) => {
-    res.status(400).send(err);
-  });
+  todo.save().then(
+    doc => {
+      res.send(doc);
+    },
+    err => {
+      res.status(400).send(err);
+    }
+  );
 });
 
-app.get("/todos", authenticate, (req, res) => {
+app.get('/todos', authenticate, (req, res) => {
   Todo.find({
     _creator: req.user._id
-  }).then((todos) => {
-    res.send({ todos });
-  }, (err) => {
-    res.status(400).send(err);
-  });
+  }).then(
+    todos => {
+      res.send({ todos });
+    },
+    err => {
+      res.status(400).send(err);
+    }
+  );
 });
 
-app.get("/todos/:id", authenticate, (req, res) => {
+app.get('/todos/:id', authenticate, (req, res) => {
   const id = req.params.id;
 
   // valid id using isValid
@@ -51,47 +60,52 @@ app.get("/todos/:id", authenticate, (req, res) => {
   Todo.findOne({
     _id: id,
     _creator: req.user._id
-  }).then((todo) => {
-    // success
-    if (todo) {
-      // if todo - send it back
-      return res.send({todo});
+  }).then(
+    todo => {
+      // success
+      if (todo) {
+        // if todo - send it back
+        return res.send({ todo });
+      }
+      // if not - send back 404 with empty body
+      res.status(404).send();
+    },
+    err => {
+      // Error
+      // 400 - and send empty back
+      res.status(400).send(err);
     }
-    // if not - send back 404 with empty body
-    res.status(404).send();
-  }, (err) => {
-    // Error
-    // 400 - and send empty back
-    res.status(400).send();
-  });
+  );
 });
 
-app.delete("/todos/:id", authenticate, (req, res) => {
+app.delete('/todos/:id', authenticate, (req, res) => {
   const id = req.params.id;
 
   if (!ObjectID.isValid(id)) {
-    return res.status(404).send("Invalid ID");
+    return res.status(404).send('Invalid ID');
   }
 
   Todo.findOneAndRemove({
     _id: id,
     _creator: req.user._id
-  }).then((todo) => {
-    if (todo) {
-      return res.send({todo});
-    }
-    res.status(404).send("ID not found");
-  }).catch((err) => {
-    res.status(400).send();
-  });
+  })
+    .then(todo => {
+      if (todo) {
+        return res.send({ todo });
+      }
+      res.status(404).send('ID not found');
+    })
+    .catch(err => {
+      res.status(400).send();
+    });
 });
 
-app.patch("/todos/:id", authenticate, (req, res) => {
+app.patch('/todos/:id', authenticate, (req, res) => {
   const id = req.params.id;
-  const body = _.pick(req.body, ["text", "completed"]); // limit items that can be updated
+  const body = _.pick(req.body, ['text', 'completed']); // limit items that can be updated
 
   if (!ObjectID.isValid(id)) {
-    return res.status(404).send("Invalid ID");
+    return res.status(404).send('Invalid ID');
   }
 
   if (_.isBoolean(body.completed) && body.completed) {
@@ -101,56 +115,71 @@ app.patch("/todos/:id", authenticate, (req, res) => {
     body.completedAt = null;
   }
 
-  Todo.findOneAndUpdate({
-    _id: id,
-    _creator: req.user._id
-  }, {$set: body}, {new: true}).then((todo) => {
-    if (!todo) {
-      return res.status(404).send();
-    }
+  Todo.findOneAndUpdate(
+    {
+      _id: id,
+      _creator: req.user._id
+    },
+    { $set: body },
+    { new: true }
+  )
+    .then(todo => {
+      if (!todo) {
+        return res.status(404).send();
+      }
 
-    res.send({todo});
-  }).catch((err) => {
-    res.status(404).send();
-  });
+      res.send({ todo });
+    })
+    .catch(err => {
+      res.status(404).send();
+    });
 });
 
-app.post("/users", (req, res) => {
-  const body = _.pick(req.body, ["email", "password"]);
+app.post('/create-user', (req, res) => {
+  const body = _.pick(req.body, ['email', 'password']);
   const user = new User(body);
 
-  user.save().then(() => {
-    return user.generateAuthToken();
-  }).then((token) => {
-    res.header("x-auth", token).send(user);
-  }).catch((err) => {
-    res.status(400).send(err);
-  });
+  user
+    .save()
+    .then(() => {
+      return user.generateAuthToken();
+    })
+    .then(token => {
+      res.header('x-auth', token).send(user);
+    })
+    .catch(err => {
+      res.status(400).send(err);
+    });
 });
 
-app.get("/users/me", authenticate, (req, res) => {
+app.get('/users/me', (req, res) => {
   res.send(req.user);
 });
 
 // POST /users/login {email, password}
-app.post("/users/login", (req, res) => {
-  const body = _.pick(req.body, ["email", "password"]);
+app.post('/login', (req, res) => {
+  const body = _.pick(req.body, ['email', 'password']);
 
-  User.findByCredentials(body.email, body.password).then((user) => {
-    user.generateAuthToken().then((token) => {
-      res.header("x-auth", token).send(user);
+  User.findByCredentials(body.email, body.password)
+    .then(user => {
+      user.generateAuthToken().then(token => {
+        res.header('x-auth', token).send(user);
+      });
+    })
+    .catch(err => {
+      res.status(400).send();
     });
-  }).catch((err) => {
-    res.status(400).send();
-  });
 });
 
-app.delete("/users/me/token", authenticate, (req, res) => {
-  req.user.removeToken(req.token).then(() => {
-    res.status(200).send();
-  }, (err) => {
-    res.status(400).send();
-  });
+app.delete('/users/me/token', authenticate, (req, res) => {
+  req.user.removeToken(req.token).then(
+    () => {
+      res.status(200).send();
+    },
+    err => {
+      res.status(400).send();
+    }
+  );
 });
 
 app.listen(port, () => {

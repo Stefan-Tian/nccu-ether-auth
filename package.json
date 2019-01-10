@@ -6,7 +6,9 @@
   "scripts": {
     "start": "node server/server.js",
     "test": "export NODE_ENV=test || SET \"NODE_ENV=test\" && mocha server/**/*.test.js",
-    "test-watch": "nodemon --exec 'npm test'"
+    "test-watch": "nodemon --exec 'npm test'",
+    "client": "npm run start --prefix client",
+    "dev": "concurrently \"npm run start\" \"npm run client\""
   },
   "engine": {
     "node": "8.1.2"
@@ -16,6 +18,8 @@
   "dependencies": {
     "bcryptjs": "^2.4.3",
     "body-parser": "^1.17.2",
+    "concurrently": "^3.5.1",
+    "cors": "^2.8.5",
     "crypto-js": "^3.1.9-1",
     "express": "^4.15.3",
     "jsonwebtoken": "^7.4.1",
